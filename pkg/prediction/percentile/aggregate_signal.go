@@ -4,12 +4,12 @@ import (
 	"math"
 	"time"
 
-	"github.com/gocrane/crane/pkg/utils/log"
-
 	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
+
+	"github.com/gocrane/crane/pkg/log"
 )
 
-var logger = log.Logger()
+var logger = log.NewLogger("percentile-predictor")
 
 type aggregateSignal struct {
 	histogram         vpa.Histogram
@@ -31,15 +31,10 @@ func (a *aggregateSignal) addSample(sampleTime time.Time, sampleValue float64) {
 	a.totalSamplesCount++
 }
 
-func newAggregateSignal(queryExpr string) *aggregateSignal {
-	config := getInternalConfig(queryExpr)
-	if config == nil {
-		logger.V(2).Info("Config not found", "queryExpr", queryExpr)
-		return nil
-	}
+func newAggregateSignal(c *internalConfig) *aggregateSignal {
 	return &aggregateSignal{
-		histogram:       vpa.NewHistogram(config.histogramOptions),
-		minSampleWeight: config.minSampleWeight,
+		histogram:       vpa.NewHistogram(c.histogramOptions),
+		minSampleWeight: c.minSampleWeight,
 		creationTime:    time.Now(),
 	}
 }

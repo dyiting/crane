@@ -13,27 +13,29 @@ import (
 )
 
 var (
+	Hour = time.Hour
 	Day  = time.Hour * 24
 	Week = Day * 7
 )
 
 const (
 	defaultFuture = time.Hour
-	queryInterval = time.Hour * 12
 )
 
 type periodicSignalPrediction struct {
 	prediction.GenericPrediction
-	a  aggregateSignalMap
-	qr config.Receiver
+	a           aggregateSignalMap
+	qr          config.Receiver
+	modelConfig config.AlgorithmModelConfig
 }
 
-func NewPrediction() (prediction.Interface, error) {
+func NewPrediction(mc config.AlgorithmModelConfig) (prediction.Interface, error) {
 	qb := config.NewBroadcaster()
 	return &periodicSignalPrediction{
 		GenericPrediction: prediction.NewGenericPrediction(qb),
 		a:                 aggregateSignalMap{},
 		qr:                qb.Listen(),
+		modelConfig:       mc,
 	}, nil
 }
 
@@ -46,7 +48,7 @@ func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfi
 	for _, ts := range tsList {
 		go func(ts *common.TimeSeries) {
 			defer wg.Done()
-			if err := preProcessTimeSeries(ts, config, Day); err != nil {
+			if err := preProcessTimeSeries(ts, config, Hour); err != nil {
 				logger.Error(err, "Dsp failed to pre process time series.")
 			} else {
 				tsCh <- ts
@@ -146,10 +148,10 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 		logger.Info("Dsp received a WithQuery reques", "queryExpr", queryExpr)
 
 		go func(queryExpr string) {
-			ticker := time.NewTicker(queryInterval)
+			ticker := time.NewTicker(p.modelConfig.UpdateInterval)
 			defer ticker.Stop()
-
 			for {
+				logger.V(3).Info("Dsp start updateAggregateSignalsWithQuery", "query", queryExpr)
 				if err := p.updateAggregateSignalsWithQuery(queryExpr); err != nil {
 					logger.V(6).Info(fmt.Sprintf("Warning: updateAggregateSignalsWithQuery failed, err: %s", err.Error()))
 				}
@@ -204,12 +206,15 @@ func (p *periodicSignalPrediction) updateAggregateSignals(id string, tsList []*c
 	var predictedTimeSeriesList []*common.TimeSeries
 
 	for _, ts := range tsList {
+		logger.V(9).Info("Dsp get time series.", "queryExpr", id, "tsSamples", ts.Samples, "tsLabels", ts.Labels)
 		var chosenEstimator Estimator
 		var signal *Signal
 		var nCycles int
 		var cycleDuration time.Duration = 0
-
-		if isPeriodicTimeSeries(ts, config.historyResolution, Day) {
+		if isPeriodicTimeSeries(ts, config.historyResolution, Hour) {
+			cycleDuration = Hour
+			logger.Info("dsp time series is periodic.", "labels", ts.Labels, "cycleDuration", cycleDuration)
+		} else if isPeriodicTimeSeries(ts, config.historyResolution, Day) {
 			cycleDuration = Day
 			logger.Info("dsp time series is periodic.", "labels", ts.Labels, "cycleDuration", cycleDuration)
 		} else if isPeriodicTimeSeries(ts, config.historyResolution, Week) {
@@ -376,4 +381,8 @@ func (p *periodicSignalPrediction) getPredictedTimeSeriesList(id string, tsList 
 		logger.Info("Dsp got predicted samples.", "id", id, "len", len(samples), "labels", a.predictedTimeSeries.Labels)
 	}
 	return predictedTimeSeriesList
+}
+
+func (p *periodicSignalPrediction) Name() string {
+	return "Periodic"
 }

@@ -3,11 +3,12 @@ package options
 import (
 	"time"
 
+	"github.com/spf13/pflag"
 	componentbaseconfig "k8s.io/component-base/config"
 
-	"github.com/spf13/pflag"
-
+	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/webhooks"
 )
 
 // Options hold the command-line options about crane manager
@@ -26,6 +27,12 @@ type Options struct {
 	DataSourcePromConfig providers.PromConfig
 	// DataSourceMockConfig is the mock data provider
 	DataSourceMockConfig providers.MockConfig
+
+	// AlgorithmModelConfig
+	AlgorithmModelConfig config.AlgorithmModelConfig
+
+	// WebhookConfig
+	WebhookConfig webhooks.WebhookConfig
 }
 
 // NewOptions builds an empty options.
@@ -69,4 +76,7 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.DataSourcePromConfig.BRateLimit, "prometheus-bratelimit", false, "prometheus bratelimit")
 	flags.StringVar(&o.DataSourceMockConfig.SeedFile, "seed-file", "", "mock provider seed file")
 
+	flags.DurationVar(&o.AlgorithmModelConfig.UpdateInterval, "model-update-interval", 12*time.Hour, "algorithm model update interval, now used for dsp model update interval")
+
+	flags.BoolVar(&o.WebhookConfig.Enabled, "webhook-enabled", true, "whether enable webhook or not, default to true")
 }

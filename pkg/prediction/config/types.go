@@ -1,14 +1,20 @@
 package config
 
 import (
+	"time"
+
 	"github.com/gocrane/api/prediction/v1alpha1"
 )
 
+type AlgorithmModelConfig struct {
+	UpdateInterval time.Duration
+}
+
 type Config struct {
-	MetricSelector *v1alpha1.ExpressionQuery
-	Query          *v1alpha1.RawQuery
-	DSP            *v1alpha1.DSP
-	Percentile     *v1alpha1.Percentile
+	Metric     *v1alpha1.MetricQuery
+	Expression *v1alpha1.ExpressionQuery
+	DSP        *v1alpha1.DSP
+	Percentile *v1alpha1.Percentile
 }
 
 // ConvertApiMetrics2InternalConfigs
@@ -25,20 +31,20 @@ func (c *MetricContext) ConvertApiMetric2InternalConfig(metric *v1alpha1.Predict
 	// transfer the workload to query
 	if metric.ResourceQuery != nil {
 		// todo: different data source has different querys.
-		query := &v1alpha1.RawQuery{
+		expr := &v1alpha1.ExpressionQuery{
 			Expression: c.ResourceToPromQueryExpr(metric.ResourceQuery),
 		}
 		return &Config{
-			Query:      query,
+			Expression: expr,
 			DSP:        metric.Algorithm.DSP,
 			Percentile: metric.Algorithm.Percentile,
 		}
 	} else {
 		return &Config{
-			MetricSelector: metric.ExpressionQuery,
-			Query:          metric.RawQuery,
-			DSP:            metric.Algorithm.DSP,
-			Percentile:     metric.Algorithm.Percentile,
+			Metric:     metric.MetricQuery,
+			Expression: metric.ExpressionQuery,
+			DSP:        metric.Algorithm.DSP,
+			Percentile: metric.Algorithm.Percentile,
 		}
 	}
 }

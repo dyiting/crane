@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-logr/logr"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"github.com/go-logr/logr"
 )
 
 var (
@@ -28,6 +27,10 @@ func Init(name string) {
 		ctrl.SetLogger(klogr.New())
 		logger = ctrl.Log.WithName(name)
 	})
+}
+
+func NewLogger(name string) logr.Logger {
+	return ctrl.Log.WithName(name)
 }
 
 func GenerateKey(name string, namespace string) string {

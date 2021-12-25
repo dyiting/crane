@@ -10,6 +10,23 @@ import (
 	podutil "github.com/gocrane/crane/pkg/utils"
 )
 
+type ResourceRequestInspector struct {
+	*Context
+}
+
+func (i *ResourceRequestInspector) Inspect() error {
+	if len(i.Pods) == 0 {
+		return fmt.Errorf("pod not found")
+	}
+
+	pod := i.Pods[0]
+	if len(pod.OwnerReferences) == 0 {
+		return fmt.Errorf("owner reference not found")
+	}
+
+	return nil
+}
+
 type WorkloadInspector struct {
 	Context *Context
 }
@@ -55,24 +72,26 @@ func (i *WorkloadPodsInspector) Inspect() error {
 	return nil
 }
 
-func NewInspectors(context *Context) []Inspector {
+func NewInspectors(ctx *Context) []Inspector {
 	var inspectors []Inspector
 
-	switch context.Recommendation.Spec.Type {
-	case analysisapi.TypeResource:
-		// todo
-	case analysisapi.TypeHPA:
-		if context.Scale != nil {
+	switch ctx.Recommendation.Spec.Type {
+	case analysisapi.AnalysisTypeResource:
+		if ctx.Pods != nil {
+			inspectors = append(inspectors, &ResourceRequestInspector{Context: ctx})
+		}
+	case analysisapi.AnalysisTypeHPA:
+		if ctx.Scale != nil {
 			inspector := &WorkloadInspector{
-				Context: context,
+				Context: ctx,
 			}
 			inspectors = append(inspectors, inspector)
 		}
 
-		if context.Pods != nil {
+		if ctx.Pods != nil {
 			inspector := &WorkloadPodsInspector{
-				Pods:    context.Pods,
-				Context: context,
+				Pods:    ctx.Pods,
+				Context: ctx,
 			}
 			inspectors = append(inspectors, inspector)
 		}

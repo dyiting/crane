@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"github.com/gocrane/api/prediction/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 var mu = sync.Mutex{}
 
-var logger = log.Logger()
+var logger = log.NewLogger("dsp-predictor")
 
 var queryToInternalConfigMap map[string]*internalConfig = map[string]*internalConfig{}
 
@@ -149,8 +150,8 @@ func init() {
 			}
 
 			mu.Lock()
-			if cfg.Query != nil && len(cfg.Query.Expression) > 0 {
-				queryToInternalConfigMap[cfg.Query.Expression] = internalCfg
+			if cfg.Expression != nil && len(cfg.Expression.Expression) > 0 {
+				queryToInternalConfigMap[cfg.Expression.Expression] = internalCfg
 			}
 			mu.Unlock()
 		}
@@ -161,8 +162,8 @@ func init() {
 			cfg := configDeleteEventReceiver.Read().(*config.Config)
 
 			mu.Lock()
-			if cfg.Query != nil {
-				delete(queryToInternalConfigMap, cfg.Query.Expression)
+			if cfg.Expression != nil {
+				delete(queryToInternalConfigMap, cfg.Expression.Expression)
 			}
 			mu.Unlock()
 		}

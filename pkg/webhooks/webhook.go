@@ -14,16 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package webhooks
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/pkg/utils/log"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/gocrane/api/prediction/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/log"
 )
 
 func SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -50,7 +51,6 @@ func (p *PredictionAdmission) Default(ctx context.Context, req runtime.Object) e
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (p *PredictionAdmission) ValidateCreate(ctx context.Context, req runtime.Object) error {
-	fmt.Println("ValidateCreate")
 	log.Logger().Info("validate create", "name", req)
 	return nil
 }
